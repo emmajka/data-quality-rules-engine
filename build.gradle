@@ -1,0 +1,28 @@
+// Settings shared by all modules: Java 21 toolchain, Spock tests on JUnit Platform.
+subprojects {
+    apply plugin: 'groovy'
+
+    group = 'pl.emmajk'
+    version = '0.0.1'
+
+    repositories {
+        mavenCentral()
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    dependencies {
+        testImplementation platform('org.junit:junit-bom:5.14.4')
+        testImplementation platform('org.spockframework:spock-bom:2.5-groovy-4.0')
+        testImplementation 'org.spockframework:spock-core'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+}
