@@ -17,3 +17,27 @@
 - context: The task says a record is "supplied as a JSON object" but not which Java type the library takes, and records vary in shape (a missing field is a possible fault, F3).
 - decision: The core takes a `PartnerRecord` (shallowly immutable), built from a `Map` of named fields that must include a string `id`, and has no JSON dependency. The host parses its JSON and wraps it.
 - consequences: Hosts adapt JSON, typed objects or rows with one conversion; `get` returns null for a field that is absent or null. Nested values are not copied, so a record is only shallowly immutable.
+
+## #4 Only RELEASED rules run, enforced by the engine
+- status: accepted
+- context: F6 says "Whatever the filters select, the engine runs `RELEASED` rules only", but not what happens to the other rules.
+- decision: The engine always skips rules that are not `RELEASED`, whatever the caller's filters select. A skipped rule produces no Result and no error.
+- consequences: A status filter can only narrow the `RELEASED` rules, so a filter for `DRAFT` or `DEPRECATED` runs nothing. Skipped rules are not counted in the run summary.
+
+## #5 A Rule is a record with embedded logic and a separate mapping
+- status: accepted
+- context: F2 asks for the decision to come from a declarative mapping, while the logic that computes the value has to be code.
+- decision: `Rule` is a record of an id, a label, `RuleMetadata` (categories are free-form strings), the `inputs`, a `RuleLogic` that reads a `PartnerRecord` (per decision #3) and returns a String value, and a `DecisionMapping` that turns the value into a decision. It is immutable as long as the logic is stateless, and the logic never returns a decision.
+- consequences: Mapping and metadata are data but the logic is opaque code, so loading a whole catalog from data would need a registry of logics, which is future work. The `inputs` list must not be empty, names the fields the logic reads for provenance, and is trusted, not verified against the logic.
+
+## #6 A decision mapping has an optional default, an unmapped value without one is an error
+- status: accepted
+- context: The task says a mapping has a default fallback, but its fixture table lists a default only for `countryBlocked`.
+- decision: `DecisionMapping`, the mapping part of a rule (per decision #5), maps computed values to decisions and has an optional default. A value that is unmapped without a default, or a null value, is an error and is never guessed into a decision.
+- consequences: `decide` throws `IllegalArgumentException` for an unmapped value and `NullPointerException` for a null one, which the engine is to report as rule errors (F3). A mapping with no entries and no default is accepted and fails on every value.
+
+## #7 Country scope is WORLD or one exact country code
+- status: accepted
+- context: The task says a rule has an optional country scope and applies when its scope is `WORLD` or equals the record's country, but not how the values are compared.
+- decision: `CountryScope`, part of the rule metadata (per decision #5), is `WORLD` or one non-blank country code, compared exactly and case-sensitively with the record's `country` value. A record whose country is missing or not a string matches only `WORLD` rules.
+- consequences: A rule is always given a scope, with `WORLD` meaning no restriction. A rule skipped by scope produces no Result, like a non-`RELEASED` rule (per decision #4), and unlike the `NOT_APPLICABLE` decision, which only a mapping can produce.
