@@ -41,7 +41,7 @@
 - keep in-code documentation short and concise, use simple vocabulary. Explain why, not what.
 - Javadoc on every public class, public method and important constant, 1-2 lines of description.
   Add `@throws` or a contract note (nullability, thread-safety, who closes a stream) only where it matters.
-- do not document every single piece of code, only if code needs more context do add it.
+- do not document every single piece of code, add documentation only if the code needs more context.
 - with every method change, if an in-code documentation exists verify changes against it, analyze if in-code documentation requires an update, update if necessary.
 
 ## Workflow

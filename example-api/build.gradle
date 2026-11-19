@@ -5,7 +5,3 @@ plugins {
 dependencies {
     implementation project(':rules-engine')
 }
-
-application {
-    mainClass = 'pl.emmajk.dqrules.example.HelloApp'
-}
