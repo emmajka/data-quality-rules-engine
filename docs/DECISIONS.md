@@ -41,3 +41,9 @@
 - context: The task says a rule has an optional country scope and applies when its scope is `WORLD` or equals the record's country, but not how the values are compared.
 - decision: `CountryScope`, part of the rule metadata (per decision #5), is `WORLD` or one non-blank country code, compared exactly and case-sensitively with the record's `country` value. A record whose country is missing or not a string matches only `WORLD` rules.
 - consequences: A rule is always given a scope, with `WORLD` meaning no restriction. A rule skipped by scope produces no Result, like a non-`RELEASED` rule (per decision #4), and unlike the `NOT_APPLICABLE` decision, which only a mapping can produce.
+
+## #8 The rule catalog is an immutable collection of rules built by registration
+- status: accepted
+- context: F1 needs a catalog of rules, the task names catalog sources as a seam, F6 filters by status, and a rule's stable id must identify it.
+- decision: `RuleCatalog` is an immutable collection of rules (per decision #5) of every status, in registration order, built with a `RuleCatalog.Builder`; the `RELEASED` guard stays with the engine (per decision #4). Registering a rule whose id is already registered fails with an `IllegalArgumentException`, and `registerAll` registers all rules or none and reports every duplicate id at once.
+- consequences: Hosts supply rules through the `RuleSource` seam or register them directly, and a catalog is safe to share across runs and threads as long as the rule logic is stateless (per decision #5). Ids are compared exactly and the catalog is held in memory, so a catalog of millions of rules would need indexing and rules as data.
