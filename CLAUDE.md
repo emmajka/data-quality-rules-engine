@@ -37,9 +37,6 @@
   representation must stay hidden (like `PartnerRecord`).
 - mutable state is fine in short-lived working objects (builders, the engine's per-run counters). Keep it private, never share it
   between runs or threads, and hand out an immutable snapshot (like the run summary).
-- bounded memory regardless of volume (F5): stream the input, emit results as they are produced, never accumulate all results.
-  Errors are streamed the same way so they cannot grow without bound (our extension of F5). The run summary is constant-size counters.
-- rule failures at runtime are isolated (F3) and never silently swallowed.
 
 ## In-code documentation
 - keep in-code documentation short and concise, use simple vocabulary. Explain why, not what.
