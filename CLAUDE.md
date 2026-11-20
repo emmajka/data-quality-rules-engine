@@ -32,7 +32,11 @@
 - keep it simple, keep the public API minimal.
 - no abstractions without a concrete need. Seams are a concrete need where the task names them (catalog source,
   rule selection with composable filters, host-supplied inputs) or where streaming implies them (record input, result and error output).
-- prefer immutability to mutability: records, enums, sealed types, unmodifiable collections.
+- data models, value objects and containers (records, results, rules, the catalog) are immutable: Java records, enums, sealed types,
+  final fields, and unmodifiable collections copied at the boundary. Use a final class instead of a Java record only when the
+  representation must stay hidden (like `PartnerRecord`).
+- mutable state is fine in short-lived working objects (builders, the engine's per-run counters). Keep it private, never share it
+  between runs or threads, and hand out an immutable snapshot (like the run summary).
 - bounded memory regardless of volume (F5): stream the input, emit results as they are produced, never accumulate all results.
   Errors are streamed the same way so they cannot grow without bound (our extension of F5). The run summary is constant-size counters.
 - rule failures at runtime are isolated (F3) and never silently swallowed.
