@@ -1,0 +1,5 @@
+{
+  "r1": { "countryBlocked": "NOT_APPLICABLE", "vatFormat": "VALID",   "ibanFormat": "VALID" },
+  "r2": { "countryBlocked": "NOT_APPLICABLE", "vatFormat": "INVALID", "ibanFormat": "VALID" },
+  "r3": { "countryBlocked": "INVALID",        "vatFormat": "INVALID", "ibanFormat": "INVALID" }
+}

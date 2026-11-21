@@ -47,3 +47,27 @@
 - context: F1 needs a catalog of rules, the task names catalog sources as a seam, F6 filters by status, and a rule's stable id must identify it.
 - decision: `RuleCatalog` is an immutable collection of rules (per decision #5) of every status, in registration order, built with a `RuleCatalog.Builder`; the `RELEASED` guard stays with the engine (per decision #4). Registering a rule whose id is already registered fails with an `IllegalArgumentException`, and `registerAll` registers all rules or none and reports every duplicate id at once.
 - consequences: Hosts supply rules through the `RuleSource` seam or register them directly, and a catalog is safe to share across runs and threads as long as the rule logic is stateless (per decision #5). Ids are compared exactly and the catalog is held in memory, so a catalog of millions of rules would need indexing and rules as data.
+
+## #9 The engine is an immutable singleton that prepares deferred, repeatable runs
+- status: accepted
+- context: F1 needs an engine that evaluates rules against a batch of records, which hosts such as an HTTP API embed as one shared instance.
+- decision: `RuleEngine` is immutable and built from a `RuleCatalog` (per decision #8). `engine.on(records)` captures the `Collection<PartnerRecord>` by reference and runs nothing, and `Run.execute()` evaluates the applicable rules (per decisions #4 and #7) on every call and returns an immutable `RunReport`.
+- consequences: The records are read when `execute()` is called, so the caller must not change the collection meanwhile. Until fault isolation exists, a failing rule propagates out of `execute()`, and `RunReport` has only `results()`.
+
+## #10 Immutable types and the engine are thread-safe, working objects are confined to one thread
+- status: accepted
+- context: The task says hosts such as an HTTP API embed the library but does not mention thread-safety, so a shared engine needs an explicit policy.
+- decision: Immutable types and `RuleEngine` are safe to share across threads, given stateless rule logic (per decision #5), and a type documents thread-safety only where it is conditional or absent. Builders are not thread-safe, and the caller owns the thread-safety of what it passes in, such as the record collection and the rule logic.
+- consequences: The library adds no locking, so a caller that shares a `Run` must not modify its collection. A concurrent test of the shared run guards the claim.
+
+## #11 A result carries provenance on every outcome, with the computed value and the input values, never the record
+- status: accepted
+- context: The task says each result carries provenance showing which rule, which record and which fields and values the rule read, without fixing its shape.
+- decision: `Result` holds the decision, the rule's severity and a nested `Provenance` of rule id, record id, the value the rule computed (our addition) and the declared input fields with their values, on every result whatever its decision. It never references the record, and its `toString` prints ids, decision and severity only, so field values such as IBANs stay out of logs.
+- consequences: An absent field and a null field both appear as null, and the inputs are trusted to be the fields the logic reads (per decision #5). The inputs list is not copied, so a caller building a `Provenance` passes an unmodifiable list without nulls.
+
+## #12 Mapping values are compared exactly
+- status: accepted
+- context: The task says a mapping turns a computed value into a decision but not how values are compared.
+- decision: `DecisionMapping` compares a computed value with its keys exactly, so case and surrounding spaces matter (per decision #6). A value that differs only in those is unmapped, so it takes the default or is an error without one.
+- consequences: A rule must return the same labels its mapping uses, and nothing normalizes values.

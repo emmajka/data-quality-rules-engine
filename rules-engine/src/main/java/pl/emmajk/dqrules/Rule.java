@@ -30,8 +30,8 @@ public record Rule(
      * @throws IllegalArgumentException if the id or label is blank, or the inputs are empty
      */
     public Rule {
-        requireText(id, "id");
-        requireText(label, "label");
+        requireNotBlank(id, "id");
+        requireNotBlank(label, "label");
         Objects.requireNonNull(metadata, "metadata");
         inputs = List.copyOf(Objects.requireNonNull(inputs, "inputs"));
         if (inputs.isEmpty()) {
@@ -41,7 +41,7 @@ public record Rule(
         Objects.requireNonNull(mapping, "mapping");
     }
 
-    private static void requireText(String value, String name) {
+    private static void requireNotBlank(String value, String name) {
         Objects.requireNonNull(value, name);
         if (value.isBlank()) {
             throw new IllegalArgumentException(name + " must not be blank");

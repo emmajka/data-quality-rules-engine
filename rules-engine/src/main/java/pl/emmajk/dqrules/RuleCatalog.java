@@ -12,8 +12,8 @@ import java.util.stream.Collectors;
 
 /**
  * The rules a run is checked against, in registration order. It holds rules of every status,
- * because choosing which ones run is a separate step. It is immutable, so it can be shared
- * across runs and threads. Build one with {@link #builder()}.
+ * because choosing which ones run is a separate step. It is immutable.
+ * Build one with {@link #builder()}.
  */
 public final class RuleCatalog {
 
@@ -28,14 +28,6 @@ public final class RuleCatalog {
     /** Returns an empty builder. */
     public static Builder builder() {
         return new Builder();
-    }
-
-    /** Returns a builder that starts with the rules of this catalog, to make a changed copy. */
-    public Builder toBuilder() {
-        Builder builder = new Builder();
-        builder.registered.putAll(byId);
-
-        return builder;
     }
 
     /** Returns the rules in registration order. */

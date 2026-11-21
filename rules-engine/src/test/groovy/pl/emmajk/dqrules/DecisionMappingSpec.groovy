@@ -17,6 +17,14 @@ class DecisionMappingSpec extends Specification {
         ''        || Decision.NOT_APPLICABLE
     }
 
+    def 'decide - dataset tests - values that differ from a key only in case or spacing'() {
+        expect:
+        mapping.decide(value) == Decision.NOT_APPLICABLE
+
+        where:
+        value << ['BLOCKED', 'blocked ', ' blocked']
+    }
+
     def 'given a map when calling of then should return a mapping without a default'() {
         expect:
         DecisionMapping.of([ok: Decision.VALID]).defaultDecision() == null

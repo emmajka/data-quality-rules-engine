@@ -28,6 +28,7 @@ public record DecisionMapping(Map<String, Decision> byValue, Decision defaultDec
 
     /**
      * Returns the decision for the value, or the default if the value is not mapped.
+     * Values are compared exactly, so case and surrounding spaces matter.
      *
      * @throws NullPointerException if {@code value} is null
      * @throws IllegalArgumentException if the value is not mapped and there is no default

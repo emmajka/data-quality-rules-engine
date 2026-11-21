@@ -1,0 +1,74 @@
+package pl.emmajk.dqrules
+
+import spock.lang.Specification
+
+/** The scenario from section 5 of the task: three records checked by three rules. */
+class AcceptanceScenarioSpec extends Specification {
+
+    // The rules are code. The task gives no severities for them, so the spec assumes one of each.
+    def catalog = RuleCatalog.builder()
+            .register(new Rule('countryBlocked', 'Country is blocked',
+                    RuleMetadata.of(RuleStatus.RELEASED, Severity.ERROR), ['country'],
+                    { partner -> partner.get('country') == 'ZZ' ? 'blocked' : 'ok' } as RuleLogic,
+                    new DecisionMapping([blocked: Decision.INVALID], Decision.NOT_APPLICABLE)))
+            .register(new Rule('vatFormat', 'VAT id format',
+                    RuleMetadata.of(RuleStatus.RELEASED, Severity.WARNING), ['vatId'],
+                    { partner -> partner.get('vatId') instanceof String && partner.get('vatId').length() >= 9 ? 'ok' : 'bad' } as RuleLogic,
+                    DecisionMapping.of([ok: Decision.VALID, bad: Decision.INVALID])))
+            .register(new Rule('ibanFormat', 'IBAN format',
+                    RuleMetadata.of(RuleStatus.RELEASED, Severity.INFO), ['iban', 'country'],
+                    { partner ->
+                        partner.get('iban') instanceof String && partner.get('country') instanceof String &&
+                                partner.get('iban').startsWith(partner.get('country')) ? 'ok' : 'bad'
+                    } as RuleLogic,
+                    DecisionMapping.of([ok: Decision.VALID, bad: Decision.INVALID])))
+            .build()
+
+    def records = Fixtures.records('/fixtures/task-section5-records.json')
+    def expectedDecisions = Fixtures.json('/fixtures/task-section5-expected-decisions.json')
+
+    def 'given the task records and rules when calling execute then should return the expected decisions'() {
+        when:
+        def results = RuleEngine.of(catalog).on(records).execute().results()
+
+        then:
+        results.size() == 9
+        results.every { it.decision().name() == expectedDecisions[it.recordId()][it.ruleId()] }
+    }
+
+    def 'given the task records and rules when calling execute then should return the results record by record in catalog order'() {
+        when:
+        def results = RuleEngine.of(catalog).on(records).execute().results()
+
+        then:
+        results.collect { it.recordId() + '-' + it.ruleId() } == [
+                'r1-countryBlocked', 'r1-vatFormat', 'r1-ibanFormat',
+                'r2-countryBlocked', 'r2-vatFormat', 'r2-ibanFormat',
+                'r3-countryBlocked', 'r3-vatFormat', 'r3-ibanFormat']
+    }
+
+    def 'given the task records and rules when calling execute then should give each result the severity of its rule'() {
+        given:
+        def severities = [countryBlocked: Severity.ERROR, vatFormat: Severity.WARNING, ibanFormat: Severity.INFO]
+
+        when:
+        def results = RuleEngine.of(catalog).on(records).execute().results()
+
+        then:
+        results.every { it.severity() == severities[it.ruleId()] }
+    }
+
+    def 'given the task records when calling execute then should explain the decisions for r3 with its input values'() {
+        when:
+        def byRule = RuleEngine.of(catalog).on(records).execute().results()
+                .findAll { it.provenance().recordId() == 'r3' }
+                .collectEntries { [it.provenance().ruleId(), it.provenance()] }
+
+        then:
+        byRule.countryBlocked.value() == 'blocked'
+        byRule.vatFormat.value() == 'bad'
+        byRule.vatFormat.inputs() == [new Provenance.Input('vatId', null)]
+        byRule.ibanFormat.value() == 'bad'
+        byRule.ibanFormat.inputs() == [new Provenance.Input('iban', ''), new Provenance.Input('country', 'ZZ')]
+    }
+}

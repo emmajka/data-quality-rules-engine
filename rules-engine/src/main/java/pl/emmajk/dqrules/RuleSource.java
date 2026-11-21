@@ -7,7 +7,8 @@ import java.util.List;
 public interface RuleSource {
 
     /**
-     * Returns the rules to register, in registration order, never null. The builder reads the list once.
+     * Returns the rules to register, in registration order, never null. The builder reads the list once, on the caller's thread,
+     * so an implementation need not be thread-safe.
      * A failure must be an unchecked exception, which reaches the caller.
      */
     List<Rule> rules();

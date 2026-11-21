@@ -48,19 +48,6 @@ class RuleCatalogSpec extends Specification {
         !catalog.contains('b')
     }
 
-    def 'given a catalog when calling toBuilder then should return a builder starting with its rules'() {
-        given:
-        def catalog = RuleCatalog.builder().register(ruleA).build()
-        def ruleB = rule('b')
-
-        when:
-        def extended = catalog.toBuilder().register(ruleB).build()
-
-        then:
-        extended.rules() == [ruleA, ruleB]
-        catalog.rules() == [ruleA]
-    }
-
     def 'find - dataset tests'() {
         given:
         def catalog = RuleCatalog.builder().register(ruleA).build()
