@@ -17,8 +17,9 @@
   `consequences` (optional). Each of `context`, `decision` and `consequences` is at most 2 lines (about 240 characters),
   so an entry is at most about 10 lines.
 - follow only decisions with status `accepted`, never a `superseded` one.
-- never edit, renumber or delete a decision on your own, and never add a new one without my approval. The only allowed
-  edit is the `status`, when a decision gets superseded by an approved new one.
+- decisions are immutable: never edit, renumber or delete one, whatever the reason. A change is a new decision that
+  supersedes the old one, which only gets the status `superseded by #N`. The new decision restates what stays valid,
+  because superseded decisions are not followed. Adding or superseding a decision needs my approval.
 - if a decision looks wrong, incomplete, or conflicts with the code or another decision: stop and inform me. Propose a
   new or superseding entry and wait for my approval.
 - a new decision that relates to an existing one should say so, for instance `per decision #N`.
