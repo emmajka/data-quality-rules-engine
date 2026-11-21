@@ -33,7 +33,7 @@
 - no abstractions without a concrete need. Seams are a concrete need where the task names them (catalog source,
   rule selection with composable filters, host-supplied inputs) or where streaming implies them (record input, result and error output).
 - data models, value objects and containers (records, results, rules, the catalog) are immutable: Java records, enums, sealed types,
-  final fields, and unmodifiable collections copied at the boundary. Use a final class instead of a Java record only when the
+  final fields and unmodifiable collections. Use a final class instead of a Java record only when the
   representation must stay hidden (like `PartnerRecord`).
 - mutable state is fine in short-lived working objects (builders, the engine's per-run counters). Keep it private, never share it
   between runs or threads, and hand out an immutable snapshot (like the run summary).
