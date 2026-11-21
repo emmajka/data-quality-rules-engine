@@ -13,6 +13,8 @@
   the mapping stays data (per decision #5).
 - Assumption: a mapping's default is optional, and an unmapped value without a default, or a null value, is an error
   instead of a guessed decision (per decision #6). An empty value is valid and goes through the mapping like any other.
+- Assumption: a decision mapping compares a computed value with its keys exactly, so case and surrounding spaces matter
+  (per decision #12).
 - Assumption: a rule's `inputs` name the fields its logic reads. They are trusted and not verified against the logic
   (per decision #5).
 - Assumption: a rule is identified by its id, ids are compared exactly, and registering a duplicate id fails instead of
