@@ -27,7 +27,7 @@ public record Rule(
      * Validates the components and copies the inputs.
      *
      * @throws NullPointerException if any component is null, or the inputs hold a null
-     * @throws IllegalArgumentException if the id or label is blank, or the inputs are empty
+     * @throws IllegalArgumentException if the id or label is blank, or the inputs are empty or hold a blank name
      */
     public Rule {
         requireNotBlank(id, "id");
@@ -36,6 +36,9 @@ public record Rule(
         inputs = List.copyOf(Objects.requireNonNull(inputs, "inputs"));
         if (inputs.isEmpty()) {
             throw new IllegalArgumentException("inputs must not be empty");
+        }
+        if (inputs.stream().anyMatch(String::isBlank)) {
+            throw new IllegalArgumentException("inputs must not contain a blank name");
         }
         Objects.requireNonNull(logic, "logic");
         Objects.requireNonNull(mapping, "mapping");

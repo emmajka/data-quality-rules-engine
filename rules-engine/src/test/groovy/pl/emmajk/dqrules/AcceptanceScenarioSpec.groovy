@@ -58,6 +58,32 @@ class AcceptanceScenarioSpec extends Specification {
         results.every { it.severity() == severities[it.ruleId()] }
     }
 
+    def 'given a rule that fails on a record with a missing field when calling execute then should report the error and the other results'() {
+        given:
+        def vatLength = new Rule('vatLength', 'VAT id length', RuleMetadata.of(RuleStatus.RELEASED, Severity.WARNING),
+                ['vatId'],
+                { partner ->
+                    if (partner.get('vatId') == null) { throw new IllegalArgumentException('missing field vatId') }
+                    partner.get('vatId').length() >= 9 ? 'ok' : 'short'
+                } as RuleLogic,
+                DecisionMapping.of([ok: Decision.VALID, short: Decision.INVALID]))
+        def withFailing = RuleCatalog.builder().registerAll(catalog.rules()).register(vatLength).build()
+
+        when:
+        def report = RuleEngine.of(withFailing).on(records).execute()
+
+        then:
+        report.results().size() == 11
+        report.results().findAll { it.ruleId() != 'vatLength' }
+                .every { it.decision().name() == expectedDecisions[it.recordId()][it.ruleId()] }
+        report.errors().size() == 1
+        report.errors().first().ruleId() == 'vatLength'
+        report.errors().first().recordId() == 'r3'
+        report.errors().first().errorType() == 'java.lang.IllegalArgumentException'
+        report.errors().first().message() == 'missing field vatId'
+        !report.errors().first().origin().isEmpty()
+    }
+
     def 'given the task records when calling execute then should explain the decisions for r3 with its input values'() {
         when:
         def byRule = RuleEngine.of(catalog).on(records).execute().results()

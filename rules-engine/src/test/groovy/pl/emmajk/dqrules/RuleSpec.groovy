@@ -69,6 +69,18 @@ class RuleSpec extends Specification {
         e.message.contains('inputs')
     }
 
+    def 'constructor - dataset tests - blank input names'() {
+        when:
+        rule(inputs: inputs)
+
+        then:
+        def e = thrown(IllegalArgumentException)
+        e.message.contains('inputs')
+
+        where:
+        inputs << [[''], ['  '], ['vatId', ' ']]
+    }
+
     def 'given an inputs list changed after creation when calling inputs then should return the original list'() {
         given:
         def source = ['vatId']

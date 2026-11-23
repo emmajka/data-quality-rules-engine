@@ -69,7 +69,7 @@
   `registerAll` reports every duplicate. The catalog is thread-safe while the rule logic is stateless (per decision #5).
 
 ## #9 The engine is an immutable singleton that prepares deferred, repeatable runs
-- status: accepted
+- status: superseded by #14
 - context: F1 needs an engine that evaluates rules against a batch of records, which hosts such as an HTTP API embed as
   one shared instance.
 - decision: `RuleEngine` is immutable, built from a `RuleCatalog` (per decision #8). `on(records)` captures the
@@ -101,3 +101,21 @@
 - decision: `DecisionMapping` compares a computed value with its keys exactly, so case and surrounding spaces matter
   (per decision #6). A value that differs only in those is unmapped, so it takes the default or is an error without one.
 - consequences: A rule must return the same labels its mapping uses, and nothing normalizes values.
+
+## #13 A rule failure becomes a RuleError without the exception, reported apart from the results
+- status: accepted
+- context: F3 asks for a per-rule, per-record error "with enough detail to locate the cause", and for the caller to
+  receive both the results and the errors.
+- decision: `Run.execute()` catches an `Exception` thrown by a rule (per decision #5) and reports it as a `RuleError` in
+  `RunReport.errors()`, apart from the results. An `Error` is not caught.
+- consequences: `RuleError` keeps ids, the root cause's type and message (cut to 500 chars) and its top 3 stack frames,
+  not the exception. A message can hold field values, so `toString` omits it.
+
+## #14 The engine is an immutable singleton that prepares deferred, repeatable runs, and reports rule failures
+- status: accepted
+- context: Supersedes decision #9, whose note that a failing rule propagates out of `execute()` is outdated now that
+  failures are reported (per decision #13).
+- decision: `RuleEngine` is immutable, built from a `RuleCatalog` (per decision #8). `on(records)` captures the
+  collection by reference and runs nothing. `execute()` runs the applicable rules (per decisions #4 and #7) each call.
+- consequences: The records are read at `execute()`, so the caller must not change the collection meanwhile. It returns
+  an immutable `RunReport`, and rule failures are reported in it as errors (per decision #13).

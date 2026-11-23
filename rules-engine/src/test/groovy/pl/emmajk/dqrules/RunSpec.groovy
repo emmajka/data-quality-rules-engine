@@ -199,6 +199,141 @@ class RunSpec extends Specification {
         thrown(UnsupportedOperationException)
     }
 
+    static RuleLogic failingOn(String recordId, Throwable failure) {
+        { partner -> if (partner.id() == recordId) { throw failure }; 'ok' } as RuleLogic
+    }
+
+    def 'given a rule that fails on one record when calling execute then should report the error and keep the other results'() {
+        given:
+        def failure = new IllegalStateException('boom')
+        def rules = [Fixtures.rule(id: 'x', logic: failingOn('b', failure)), Fixtures.rule(id: 'y')]
+        def records = [Fixtures.record(id: 'a'), Fixtures.record(id: 'b'), Fixtures.record(id: 'c')]
+
+        when:
+        def report = RuleEngine.of(Fixtures.catalog(*rules)).on(records).execute()
+
+        then:
+        report.results().collect { it.recordId() + '-' + it.ruleId() } == ['a-x', 'a-y', 'b-y', 'c-x', 'c-y']
+        report.errors().size() == 1
+        report.errors().first().ruleId() == 'x'
+        report.errors().first().recordId() == 'b'
+        report.errors().first().errorType() == 'java.lang.IllegalStateException'
+        report.errors().first().message() == 'boom'
+        !report.errors().first().origin().isEmpty()
+    }
+
+    def 'execute - dataset tests - kinds of failures'() {
+        given:
+        def rule = Fixtures.rule(logic: { partner ->
+            if (value instanceof Throwable) { throw value }
+            value
+        } as RuleLogic, mapping: DecisionMapping.of([ok: Decision.VALID]))
+        def report = RuleEngine.of(Fixtures.catalog(rule)).on([Fixtures.record(id: 'a')]).execute()
+
+        expect:
+        report.results().isEmpty()
+        report.errors()*.errorType() == [type]
+        report.errors()*.message() == [message]
+
+        where:
+        value                              || type                              | message
+        new IllegalStateException('bad')   || 'java.lang.IllegalStateException' | 'bad'
+        'weird'                            || 'java.lang.IllegalArgumentException' | "no decision for value 'weird' and no default"
+        null                               || 'java.lang.NullPointerException'  | 'value'
+    }
+
+    def 'given every rule failing on every record when calling execute then should report an error for each pair and no result'() {
+        given:
+        def failure = new IllegalStateException('boom')
+        def rules = [Fixtures.rule(id: 'x', logic: { throw failure } as RuleLogic),
+                     Fixtures.rule(id: 'y', logic: { throw failure } as RuleLogic)]
+        def run = RuleEngine.of(Fixtures.catalog(*rules)).on([Fixtures.record(id: 'a'), Fixtures.record(id: 'b')])
+
+        when:
+        def report = run.execute()
+
+        then:
+        report.results().isEmpty()
+        report.errors().collect { it.recordId() + '-' + it.ruleId() } == ['a-x', 'a-y', 'b-x', 'b-y']
+    }
+
+    def 'execute - dataset tests - failing rules that are not applicable'() {
+        given:
+        def rule = Fixtures.rule(status: status, scope: scope, logic: { throw new IllegalStateException('boom') } as RuleLogic)
+        def report = RuleEngine.of(Fixtures.catalog(rule)).on([Fixtures.record(id: 'a', country: 'DE')]).execute()
+
+        expect:
+        report.results().isEmpty()
+        report.errors().isEmpty()
+
+        where:
+        status                | scope
+        RuleStatus.DRAFT      | CountryScope.WORLD
+        RuleStatus.DEPRECATED | CountryScope.WORLD
+        RuleStatus.RELEASED   | CountryScope.of('FR')
+    }
+
+    def 'given a rule that throws an Error when calling execute then should propagate it'() {
+        given:
+        def rule = Fixtures.rule(logic: { throw new OutOfMemoryError('simulated') } as RuleLogic)
+        def run = RuleEngine.of(Fixtures.catalog(rule)).on([Fixtures.record(id: 'a')])
+
+        when:
+        run.execute()
+
+        then:
+        def e = thrown(OutOfMemoryError)
+        e.message == 'simulated'
+    }
+
+    def 'given a failing rule and a later null record when calling execute then should still throw a NullPointerException'() {
+        given:
+        def rule = Fixtures.rule(logic: { throw new IllegalStateException('boom') } as RuleLogic)
+        def run = RuleEngine.of(Fixtures.catalog(rule)).on([Fixtures.record(id: 'a'), null])
+
+        when:
+        run.execute()
+
+        then:
+        def e = thrown(NullPointerException)
+        e.message == 'record'
+    }
+
+    def 'given a failing rule when calling execute twice then should return equal errors'() {
+        given:
+        def rule = Fixtures.rule(logic: { throw new IllegalStateException('boom') } as RuleLogic)
+        def run = RuleEngine.of(Fixtures.catalog(rule)).on([Fixtures.record(id: 'a')])
+
+        expect:
+        run.execute().errors() == run.execute().errors()
+    }
+
+    def 'given a run without failures when calling execute then should return no errors'() {
+        expect:
+        RuleEngine.of(Fixtures.catalog(Fixtures.rule())).on([Fixtures.record(id: 'a')]).execute().errors().isEmpty()
+    }
+
+    def 'given a report when calling errors then should return an unmodifiable list'() {
+        given:
+        def rule = Fixtures.rule(logic: { throw new IllegalStateException('boom') } as RuleLogic)
+        def report = RuleEngine.of(Fixtures.catalog(rule)).on([Fixtures.record(id: 'a')]).execute()
+
+        when:
+        report.errors().add(null)
+
+        then:
+        thrown(UnsupportedOperationException)
+    }
+
+    def 'given a report with results and errors when calling toString then should return only the counts'() {
+        given:
+        def rules = [Fixtures.rule(id: 'x', logic: failingOn('b', new IllegalStateException('secret'))), Fixtures.rule(id: 'y')]
+        def report = RuleEngine.of(Fixtures.catalog(*rules)).on([Fixtures.record(id: 'a'), Fixtures.record(id: 'b')]).execute()
+
+        expect:
+        report.toString() == 'RunReport[results=3, errors=1]'
+    }
+
     def 'given a report when calling results then should return an unmodifiable list'() {
         given:
         def run = RuleEngine.of(Fixtures.catalog(Fixtures.rule())).on([Fixtures.record(id: 'a')])
