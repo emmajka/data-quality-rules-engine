@@ -42,6 +42,18 @@ class DecisionMappingSpec extends Specification {
         e.message.contains("'other'")
     }
 
+    def 'given a mapping without entries and without a default when calling decide then should throw an IllegalArgumentException'() {
+        given:
+        def empty = DecisionMapping.of([:])
+
+        when:
+        empty.decide('x')
+
+        then:
+        def e = thrown(IllegalArgumentException)
+        e.message.contains("'x'")
+    }
+
     def 'given a null value when calling decide then should throw a NullPointerException'() {
         when:
         mapping.decide(null)

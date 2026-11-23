@@ -14,7 +14,7 @@ public interface RuleLogic {
      * Returns the value for the record. May throw an unchecked exception when the rule cannot be evaluated.
      *
      * @param partner the record to read
-     * @return the value, possibly empty but never null
+     * @return the value, possibly empty. A null is reported as an error for that record.
      */
     String compute(PartnerRecord partner);
 }

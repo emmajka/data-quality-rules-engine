@@ -176,6 +176,15 @@ class RunSpec extends Specification {
         []                 | [Fixtures.record(id: 'a')]
     }
 
+    def 'given records with the same id when calling execute then should evaluate each of them'() {
+        given:
+        def records = [Fixtures.record(id: 'a', vatId: 'x'), Fixtures.record(id: 'a', vatId: 'y')]
+        def run = RuleEngine.of(Fixtures.catalog(Fixtures.rule())).on(records)
+
+        expect:
+        run.execute().results().collect { it.provenance().inputs().first().value() } == ['x', 'y']
+    }
+
     def 'given a collection with a null record when calling execute then should throw a NullPointerException'() {
         given:
         def run = RuleEngine.of(Fixtures.catalog(Fixtures.rule())).on([Fixtures.record(id: 'a'), null])
@@ -311,6 +320,67 @@ class RunSpec extends Specification {
     def 'given a run without failures when calling execute then should return no errors'() {
         expect:
         RuleEngine.of(Fixtures.catalog(Fixtures.rule())).on([Fixtures.record(id: 'a')]).execute().errors().isEmpty()
+    }
+
+    def 'given a run with results and errors when calling execute then should summarize both'() {
+        given:
+        def rules = [Fixtures.rule(id: 'x', severity: Severity.WARNING, logic: failingOn('b', new IllegalStateException('boom'))),
+                     Fixtures.rule(id: 'y', severity: Severity.INFO, mapping: DecisionMapping.of([ok: Decision.REVIEW]))]
+        def records = [Fixtures.record(id: 'a'), Fixtures.record(id: 'b'), Fixtures.record(id: 'c')]
+
+        when:
+        def summary = RuleEngine.of(Fixtures.catalog(*rules)).on(records).execute().summary()
+
+        then:
+        summary.results() == 5
+        summary.errors() == 1
+        summary.byDecision() as Map == [(Decision.VALID): 2L, (Decision.INVALID): 0L, (Decision.REVIEW): 3L,
+                                        (Decision.NOT_APPLICABLE): 0L]
+        summary.bySeverity() as Map == [(Severity.ERROR): 0L, (Severity.WARNING): 2L, (Severity.INFO): 3L]
+    }
+
+    def 'given rules that are skipped when calling execute then should not count them in the summary'() {
+        given:
+        def rules = [Fixtures.rule(id: 'x'), Fixtures.rule(id: 'draft', status: RuleStatus.DRAFT),
+                     Fixtures.rule(id: 'fr', scope: CountryScope.of('FR'))]
+        def run = RuleEngine.of(Fixtures.catalog(*rules)).on([Fixtures.record(id: 'a', country: 'DE')])
+
+        when:
+        def summary = run.execute().summary()
+
+        then:
+        summary.results() == 1
+        summary.errors() == 0
+    }
+
+    def 'given a report when calling summary then should match its results and errors'() {
+        given:
+        def rules = [Fixtures.rule(id: 'x', logic: failingOn('b', new IllegalStateException('boom'))), Fixtures.rule(id: 'y')]
+        def records = [Fixtures.record(id: 'a'), Fixtures.record(id: 'b')]
+
+        when:
+        def report = RuleEngine.of(Fixtures.catalog(*rules)).on(records).execute()
+
+        then:
+        report.summary().results() == report.results().size()
+        report.summary().errors() == report.errors().size()
+        report.summary().byDecision().values().sum() == report.results().size()
+        report.summary().bySeverity().values().sum() == report.results().size()
+    }
+
+    def 'given a report when calling summary twice then should return the same counts'() {
+        given:
+        def rule = Fixtures.rule(logic: failingOn('b', new IllegalStateException('boom')))
+        def report = RuleEngine.of(Fixtures.catalog(rule)).on([Fixtures.record(id: 'a'), Fixtures.record(id: 'b')]).execute()
+
+        when:
+        def first = report.summary()
+        def second = report.summary()
+
+        then:
+        first.results() == 1
+        first.errors() == 1
+        first.toString() == second.toString()
     }
 
     def 'given a report when calling errors then should return an unmodifiable list'() {

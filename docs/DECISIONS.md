@@ -119,3 +119,20 @@
   collection by reference and runs nothing. `execute()` runs the applicable rules (per decisions #4 and #7) each call.
 - consequences: The records are read at `execute()`, so the caller must not change the collection meanwhile. It returns
   an immutable `RunReport`, and rule failures are reported in it as errors (per decision #13).
+
+## #15 A run summary is an immutable RunSummary of counts, computed from the report on each call
+- status: accepted
+- context: F4 asks for the number of results and errors, and the results by decision and by severity.
+- decision: `RunReport.summary()` counts its lists on every call and returns a `RunSummary`: result and error counts
+  (per decision #13) and results per decision and per severity, listing every constant with 0 when it has none.
+- consequences: A breakdown is a count per constant (task F4), and every result counts toward both, whatever its
+  decision. Errors are one count, as they have no severity. Skipped rules are not counted (per decision #4).
+
+## #16 A rule fails only by throwing, and the engine does not validate records
+- status: accepted
+- context: F3 lists "bad logic, a bad record, or a missing field" as failures, but the task gives no record format to
+  check against (per decision #3).
+- decision: A failure is any `Exception` thrown by a rule's logic or mapping (per decision #13). The engine does not
+  validate records, so a missing field is null and the rule decides whether that fails.
+- consequences: A record that no rule rejects produces results, not errors. Only the `id` is checked, when a
+  `PartnerRecord` is created (per decision #3).

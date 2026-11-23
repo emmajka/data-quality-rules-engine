@@ -58,6 +58,18 @@ class AcceptanceScenarioSpec extends Specification {
         results.every { it.severity() == severities[it.ruleId()] }
     }
 
+    def 'given the task records and rules when calling execute then should summarize the results by decision and severity'() {
+        when:
+        def summary = RuleEngine.of(catalog).on(records).execute().summary()
+
+        then:
+        summary.results() == 9
+        summary.errors() == 0
+        summary.byDecision() as Map == [(Decision.VALID): 3L, (Decision.INVALID): 4L, (Decision.REVIEW): 0L,
+                                        (Decision.NOT_APPLICABLE): 2L]
+        summary.bySeverity() as Map == [(Severity.ERROR): 3L, (Severity.WARNING): 3L, (Severity.INFO): 3L]
+    }
+
     def 'given a rule that fails on a record with a missing field when calling execute then should report the error and the other results'() {
         given:
         def vatLength = new Rule('vatLength', 'VAT id length', RuleMetadata.of(RuleStatus.RELEASED, Severity.WARNING),
@@ -77,6 +89,8 @@ class AcceptanceScenarioSpec extends Specification {
         report.results().findAll { it.ruleId() != 'vatLength' }
                 .every { it.decision().name() == expectedDecisions[it.recordId()][it.ruleId()] }
         report.errors().size() == 1
+        report.summary().results() == 11
+        report.summary().errors() == 1
         report.errors().first().ruleId() == 'vatLength'
         report.errors().first().recordId() == 'r3'
         report.errors().first().errorType() == 'java.lang.IllegalArgumentException'

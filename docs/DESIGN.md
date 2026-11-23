@@ -2,7 +2,8 @@
 
 ## Overview and assumptions
 
-- Scope: this version covers the engine, results with provenance and the declarative decision mapping.
+- Scope: this version covers the engine, results with provenance, the declarative decision mapping, fault isolation and
+  the run summary.
 - Assumption: a record is a generic set of named fields, not a typed class (per decision #3). The library does not parse
   JSON. The host parses it and wraps the result in `PartnerRecord`.
 - Assumption: a `PartnerRecord` needs a string `id` (per decision #3), and the id must not be blank. Duplicate record
@@ -25,6 +26,10 @@
   decisions #4 and #7).
 - Assumption: every result carries provenance with the computed value and the input values, and an absent field shows as
   null like a null field (per decision #11).
+- Assumption: a rule fails only by throwing. The engine does not validate records, so a missing field is null and the
+  rule decides whether that fails (per decision #16).
+- Assumption: a breakdown in the run summary is a count per constant, over all results, and errors are a single count
+  (per decision #15).
 - Assumption: the task gives no severities for the section 5 rules, so the acceptance test assumes one of each: `ERROR`,
   `WARNING` and `INFO`.
 
@@ -36,10 +41,21 @@
   INVALID` and a default of `NOT_APPLICABLE`, so the logic never returns a decision (per decisions #5 and #6).
 - Rules are built in code and collected with `RuleCatalog.builder()` (per decisions #5 and #8).
 - `RunReport` exposes `results()` and, separately, `errors()`. Each `Result` holds the decision, the rule's severity and
-  a `Provenance` (per decisions #14 and #11). A rule that throws an `Exception` on a record becomes a `RuleError` (rule
-  id, record id, root-cause type and message, top 3 stack frames) and the run goes on (per decision #13).
+  a `Provenance` (per decisions #14 and #11).
+- `RunReport` also gives `summary()`, computed on each call: result and error counts and the results by decision and by
+  severity, with every constant listed (per decision #15).
 - Immutable types and the engine can be shared between threads, builders cannot, and a shared `Run` needs a collection
   that nobody modifies (per decision #10).
+
+## Fault isolation
+
+- A rule that throws an `Exception` on a record is caught for that rule and record. It becomes a `RuleError` in
+  `RunReport.errors()` and the run goes on (per decisions #13 and #16).
+- A `RuleError` holds the rule id, the record id, the root cause's type and message, and its top 3 stack frames. It does
+  not keep the exception (per decision #13).
+- Results and errors are separate lists, and together they cover every applicable (rule, record) pair. A rule skipped by
+  status or scope produces neither (per decisions #4, #7 and #13).
+- A null record in the collection is a caller error and still throws a `NullPointerException`.
 
 ## Seams for host-supplied inputs
 
@@ -53,6 +69,9 @@
 
 - Results and errors are held in memory in a `RunReport` (per decision #14). A `RuleError` keeps no exception, so a full
   trace is not available from the report, and its message can hold field values, so `toString` omits it (per decision
+  #13).
+- An `Error`, such as a `StackOverflowError` from a runaway rule, is not caught and ends the run (per decision #13).
+- `origin` keeps the top 3 frames as they are, so a failure thrown inside the JDK shows JDK frames first (per decision
   #13).
 - A `Provenance` holds the input values of every result, which costs memory and exposes field values, so its `toString`
   prints ids only (per decision #11).

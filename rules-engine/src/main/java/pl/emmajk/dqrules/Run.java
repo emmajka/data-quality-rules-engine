@@ -26,7 +26,7 @@ public final class Run {
 
     /**
      * Evaluates the applicable rules on every record, record by record and in catalog order,
-     * and returns the results. It reads the records as they are at the time of the call.
+     * and returns the report. It reads the records as they are at the time of the call.
      * A rule that throws an {@code Exception} on a record becomes an error in the report and
      * the run goes on. An {@code Error}, such as {@code OutOfMemoryError}, is not caught.
      *

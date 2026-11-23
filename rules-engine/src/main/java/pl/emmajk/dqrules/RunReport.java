@@ -3,9 +3,9 @@ package pl.emmajk.dqrules;
 import java.util.List;
 
 /**
- * The outcome of one {@link Run#execute()}: the results and, separately, the errors of the rules
- * that failed. A class with a hidden constructor, not a record, so it can gain more outcomes
- * later without breaking callers.
+ * The outcome of one {@link Run#execute()}: the results, separately the errors of the rules
+ * that failed, and a summary of both. A class with a hidden constructor, not a record, so it can
+ * gain more outcomes later without breaking callers.
  */
 public final class RunReport {
 
@@ -25,6 +25,11 @@ public final class RunReport {
     /** Returns the errors of the rules that failed, in the same order as the results. */
     public List<RuleError> errors() {
         return errors;
+    }
+
+    /** Counts the results and errors on every call, so keep the returned summary if you need it again. */
+    public RunSummary summary() {
+        return RunSummary.of(results, errors.size());
     }
 
     /** Returns only the counts, so logs do not leak field values. */
