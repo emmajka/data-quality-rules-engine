@@ -4,7 +4,8 @@ A Java 21 library that validates business-partner records against data-quality r
 Task: [docs/task.md](docs/task.md). Design: [docs/DESIGN.md](docs/DESIGN.md). Decisions:
 [docs/DECISIONS.md](docs/DECISIONS.md).
 
-The library is the `rules-engine` module.
+The library is the `rules-engine` module. The `example-api` module is an empty placeholder: the example HTTP API was
+left out for lack of time.
 
 ## Build and test
 

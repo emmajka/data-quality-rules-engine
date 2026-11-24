@@ -45,49 +45,6 @@ class RuleCatalogSpec extends Specification {
 
         then:
         catalog.rules() == [ruleA]
-        !catalog.contains('b')
-    }
-
-    def 'find - dataset tests'() {
-        given:
-        def catalog = RuleCatalog.builder().register(ruleA).build()
-
-        expect:
-        catalog.find(id).orElse(null) == expected
-
-        where:
-        id        || expected
-        'a'       || ruleA
-        'missing' || null
-        'A'       || null
-    }
-
-    def 'contains - dataset tests'() {
-        given:
-        def catalog = RuleCatalog.builder().register(ruleA).build()
-
-        expect:
-        catalog.contains(id) == expected
-
-        where:
-        id        || expected
-        'a'       || true
-        'missing' || false
-        'A'       || false
-    }
-
-    def 'find and contains - dataset tests - null id'() {
-        given:
-        def catalog = RuleCatalog.builder().register(ruleA).build()
-
-        when:
-        catalog."$method"(null)
-
-        then:
-        thrown(NullPointerException)
-
-        where:
-        method << ['find', 'contains']
     }
 
     def 'register - dataset tests - duplicate ids'() {

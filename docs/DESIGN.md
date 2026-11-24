@@ -35,15 +35,19 @@
 
 ## Public API
 
-- `RuleEngine.of(catalog).on(records).execute().results()`: the engine is immutable and can be shared, `on` captures the
-  collection by reference and runs nothing, and `execute` evaluates on every call (per decision #14).
+- `RuleEngine.of(catalog).on(records).execute().results()`: the engine is immutable and can be shared, so a host builds
+  it once and uses it from many threads. `on` captures the collection by reference and runs nothing, and `execute`
+  evaluates on every call (per decision #14).
 - A rule pairs a `RuleLogic` that returns a value such as `"blocked"` with a `DecisionMapping` such as `blocked →
-  INVALID` and a default of `NOT_APPLICABLE`, so the logic never returns a decision (per decisions #5 and #6).
-- Rules are built in code and collected with `RuleCatalog.builder()` (per decisions #5 and #8).
-- `RunReport` exposes `results()` and, separately, `errors()`. Each `Result` holds the decision, the rule's severity and
-  a `Provenance` (per decisions #14 and #11).
-- `RunReport` also gives `summary()`, computed on each call: result and error counts and the results by decision and by
-  severity, with every constant listed (per decision #15).
+  INVALID` and a default of `NOT_APPLICABLE`. The logic never returns a decision, so the decision stays data that can be
+  read and changed without touching the code (per decisions #5 and #6).
+- Rules are built in code and collected with `RuleCatalog.builder()`, because the logic of a rule is code (per decisions
+  #5 and #8).
+- `RunReport` exposes `results()` and, separately, `errors()`, so a failure is never mistaken for a result. Each
+  `Result` holds the decision, the rule's severity and a `Provenance`, so a decision can be explained without keeping
+  the record (per decisions #14 and #11).
+- `RunReport` also gives `summary()`: result and error counts and the results by decision and by severity, with every
+  constant listed. It is computed on each call, so the counts always match the lists (per decision #15).
 - Immutable types and the engine can be shared between threads, builders cannot, and a shared `Run` needs a collection
   that nobody modifies (per decision #10).
 
@@ -67,6 +71,9 @@
 
 ## Trade-offs
 
+- Because of the time limit I did not manage to deliver the bounded-memory processing (F5), the rule selection (F6) and
+  the example HTTP API. I preferred to finish F1 to F4 properly, with tests and documentation, over spreading the time
+  thinly. The `example-api` module from decision #1 is an empty placeholder.
 - Results and errors are held in memory in a `RunReport` (per decision #14). A `RuleError` keeps the exception itself,
   which takes more memory than a description and can still be changed, so the report is not strictly immutable. Its
   `toString` omits the message, which can hold field values (per decision #17).

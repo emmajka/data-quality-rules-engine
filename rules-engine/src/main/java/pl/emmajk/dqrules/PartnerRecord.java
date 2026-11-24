@@ -58,18 +58,6 @@ public final class PartnerRecord {
         return fields.get(field);
     }
 
-    /** Two records are equal when their fields are equal, which includes the id. */
-    @Override
-    public boolean equals(Object other) {
-        return this == other || (other instanceof PartnerRecord that && fields.equals(that.fields));
-    }
-
-    /** Consistent with {@link #equals}. It changes if the host mutates a nested value. */
-    @Override
-    public int hashCode() {
-        return fields.hashCode();
-    }
-
     /** Returns only the id, so logs do not leak other field values such as IBANs. */
     @Override
     public String toString() {

@@ -1,12 +1,11 @@
 package pl.emmajk.dqrules;
 
-import java.util.Collections;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -17,12 +16,10 @@ import java.util.stream.Collectors;
  */
 public final class RuleCatalog {
 
-    private final Map<String, Rule> byId;
     private final List<Rule> rules;
 
-    private RuleCatalog(Map<String, Rule> byId) {
-        this.byId = Collections.unmodifiableMap(byId);
-        this.rules = List.copyOf(byId.values());
+    private RuleCatalog(Collection<Rule> rules) {
+        this.rules = List.copyOf(rules);
     }
 
     /** Returns an empty builder. */
@@ -33,24 +30,6 @@ public final class RuleCatalog {
     /** Returns the rules in registration order. */
     public List<Rule> rules() {
         return rules;
-    }
-
-    /**
-     * Returns the rule with the given id, compared exactly.
-     *
-     * @throws NullPointerException if {@code id} is null
-     */
-    public Optional<Rule> find(String id) {
-        return Optional.ofNullable(byId.get(Objects.requireNonNull(id, "id")));
-    }
-
-    /**
-     * Returns true if a rule with the given id is registered, compared exactly.
-     *
-     * @throws NullPointerException if {@code id} is null
-     */
-    public boolean contains(String id) {
-        return byId.containsKey(Objects.requireNonNull(id, "id"));
     }
 
     /**
@@ -119,7 +98,7 @@ public final class RuleCatalog {
 
         /** Returns an immutable catalog of the rules registered so far. The builder stays usable. */
         public RuleCatalog build() {
-            return new RuleCatalog(new LinkedHashMap<>(registered));
+            return new RuleCatalog(registered.values());
         }
     }
 }
