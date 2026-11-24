@@ -103,7 +103,7 @@
 - consequences: A rule must return the same labels its mapping uses, and nothing normalizes values.
 
 ## #13 A rule failure becomes a RuleError without the exception, reported apart from the results
-- status: accepted
+- status: superseded by #17
 - context: F3 asks for a per-rule, per-record error "with enough detail to locate the cause", and for the caller to
   receive both the results and the errors.
 - decision: `Run.execute()` catches an `Exception` thrown by a rule (per decision #5) and reports it as a `RuleError` in
@@ -136,3 +136,12 @@
   validate records, so a missing field is null and the rule decides whether that fails.
 - consequences: A record that no rule rejects produces results, not errors. Only the `id` is checked, when a
   `PartnerRecord` is created (per decision #3).
+
+## #17 A rule failure becomes a RuleError that keeps the exception, reported apart from the results
+- status: accepted
+- context: Supersedes decision #13: describing the exception cost code and detail, and creating the description could
+  itself throw and stop the run.
+- decision: `Run.execute()` catches an `Exception` from a rule (per decision #5) and reports a `RuleError` with the rule
+  id, the record id and the exception in `RunReport.errors()`. An `Error` is not caught.
+- consequences: The exception is shared, not copied, so a report is not strictly immutable and an error takes more
+  memory than a description. `toString` omits the message, which can hold field values.

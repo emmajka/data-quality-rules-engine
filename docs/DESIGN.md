@@ -50,11 +50,11 @@
 ## Fault isolation
 
 - A rule that throws an `Exception` on a record is caught for that rule and record. It becomes a `RuleError` in
-  `RunReport.errors()` and the run goes on (per decisions #13 and #16).
-- A `RuleError` holds the rule id, the record id, the root cause's type and message, and its top 3 stack frames. It does
-  not keep the exception (per decision #13).
+  `RunReport.errors()` and the run goes on (per decisions #17 and #16).
+- A `RuleError` holds the rule id, the record id and the exception the rule threw, so the cause chain and the stack
+  trace are available (per decision #17).
 - Results and errors are separate lists, and together they cover every applicable (rule, record) pair. A rule skipped by
-  status or scope produces neither (per decisions #4, #7 and #13).
+  status or scope produces neither (per decisions #4, #7 and #17).
 - A null record in the collection is a caller error and still throws a `NullPointerException`.
 
 ## Seams for host-supplied inputs
@@ -67,14 +67,18 @@
 
 ## Trade-offs
 
-- Results and errors are held in memory in a `RunReport` (per decision #14). A `RuleError` keeps no exception, so a full
-  trace is not available from the report, and its message can hold field values, so `toString` omits it (per decision
-  #13).
-- An `Error`, such as a `StackOverflowError` from a runaway rule, is not caught and ends the run (per decision #13).
-- `origin` keeps the top 3 frames as they are, so a failure thrown inside the JDK shows JDK frames first (per decision
-  #13).
+- Results and errors are held in memory in a `RunReport` (per decision #14). A `RuleError` keeps the exception itself,
+  which takes more memory than a description and can still be changed, so the report is not strictly immutable. Its
+  `toString` omits the message, which can hold field values (per decision #17).
+- An `Error`, such as a `StackOverflowError` from a runaway rule, is not caught and ends the run (per decision #17).
 - A `Provenance` holds the input values of every result, which costs memory and exposes field values, so its `toString`
   prints ids only (per decision #11).
 - Rules skipped by status or scope leave no trace in the results (per decisions #4 and #7).
 - A missing field and a null field look the same in provenance (per decisions #3 and #11).
 - Rule ids are compared exactly, so near-duplicates such as `a` and `A` are not caught (per decision #8).
+
+## What I'd do next
+
+- Bounded memory (F5): `execute` would pass each result and error to a caller-supplied sink instead of collecting them,
+  and the summary would come from counters kept during the run. `RuleEngine.on` would take an `Iterable` of records,
+  which supersedes decision #14, and the caller would set the batch size.

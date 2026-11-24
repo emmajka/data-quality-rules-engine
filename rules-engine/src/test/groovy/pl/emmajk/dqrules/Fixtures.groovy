@@ -5,6 +5,14 @@ import groovy.json.JsonSlurper
 /** Builds rules, catalogs and records for the specs, and reads the JSON fixtures in the test resources. */
 class Fixtures {
 
+    /** An exception whose getMessage fails, like a badly written exception class of a host. */
+    static class BrokenMessage extends RuntimeException {
+        @Override
+        String getMessage() {
+            throw new IllegalStateException('getMessage is broken')
+        }
+    }
+
     static Rule rule(Map overrides = [:]) {
         def args = [id        : 'rule',
                     label     : 'Rule',

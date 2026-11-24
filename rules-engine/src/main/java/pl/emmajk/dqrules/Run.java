@@ -45,8 +45,8 @@ public final class Run {
                 if (rule.metadata().scope().appliesTo(country)) {
                     try {
                         results.add(evaluate(rule, partner));
-                    } catch (Exception failure) {
-                        errors.add(RuleError.from(rule.id(), partner.id(), failure));
+                    } catch (Exception exc) {
+                        errors.add(new RuleError(rule.id(), partner.id(), exc));
                     }
                 }
             }

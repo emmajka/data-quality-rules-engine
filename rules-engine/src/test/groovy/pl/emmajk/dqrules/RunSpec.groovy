@@ -226,9 +226,7 @@ class RunSpec extends Specification {
         report.errors().size() == 1
         report.errors().first().ruleId() == 'x'
         report.errors().first().recordId() == 'b'
-        report.errors().first().errorType() == 'java.lang.IllegalStateException'
-        report.errors().first().message() == 'boom'
-        !report.errors().first().origin().isEmpty()
+        report.errors().first().cause().is(failure)
     }
 
     def 'execute - dataset tests - kinds of failures'() {
@@ -241,8 +239,8 @@ class RunSpec extends Specification {
 
         expect:
         report.results().isEmpty()
-        report.errors()*.errorType() == [type]
-        report.errors()*.message() == [message]
+        report.errors()*.cause()*.getClass()*.name == [type]
+        report.errors()*.cause()*.message == [message]
 
         where:
         value                              || type                              | message
@@ -308,13 +306,28 @@ class RunSpec extends Specification {
         e.message == 'record'
     }
 
-    def 'given a failing rule when calling execute twice then should return equal errors'() {
+    def 'given a failing rule when calling execute twice then should report the same rule and record each time'() {
         given:
         def rule = Fixtures.rule(logic: { throw new IllegalStateException('boom') } as RuleLogic)
         def run = RuleEngine.of(Fixtures.catalog(rule)).on([Fixtures.record(id: 'a')])
 
         expect:
-        run.execute().errors() == run.execute().errors()
+        run.execute().errors().collect { [it.ruleId(), it.recordId()] } ==
+                run.execute().errors().collect { [it.ruleId(), it.recordId()] }
+    }
+
+    def 'given a rule that throws an exception whose getMessage fails when calling execute then should keep the other results'() {
+        given:
+        def rules = [Fixtures.rule(id: 'x', logic: failingOn('b', new Fixtures.BrokenMessage())), Fixtures.rule(id: 'y')]
+        def records = [Fixtures.record(id: 'a'), Fixtures.record(id: 'b'), Fixtures.record(id: 'c')]
+
+        when:
+        def report = RuleEngine.of(Fixtures.catalog(*rules)).on(records).execute()
+
+        then:
+        report.results().collect { it.recordId() + '-' + it.ruleId() } == ['a-x', 'a-y', 'b-y', 'c-x', 'c-y']
+        report.errors()*.recordId() == ['b']
+        report.errors().first().cause() instanceof Fixtures.BrokenMessage
     }
 
     def 'given a run without failures when calling execute then should return no errors'() {

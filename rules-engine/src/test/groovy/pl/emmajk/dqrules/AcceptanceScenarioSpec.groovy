@@ -93,9 +93,8 @@ class AcceptanceScenarioSpec extends Specification {
         report.summary().errors() == 1
         report.errors().first().ruleId() == 'vatLength'
         report.errors().first().recordId() == 'r3'
-        report.errors().first().errorType() == 'java.lang.IllegalArgumentException'
-        report.errors().first().message() == 'missing field vatId'
-        !report.errors().first().origin().isEmpty()
+        report.errors().first().cause() instanceof IllegalArgumentException
+        report.errors().first().cause().message == 'missing field vatId'
     }
 
     def 'given the task records when calling execute then should explain the decisions for r3 with its input values'() {
